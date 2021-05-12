@@ -5,25 +5,37 @@
 // Otherwise this violation would be treated by law and would be subject to legal prosecution.
 // Legal use of the software provides receipt of a license from the right holder only.
 
-using System.Collections.Generic;
-
 namespace Monopoly
 {
-    class GamePlayer
+    internal sealed class GamePlayer
     {
-        public GamePlayer(string name, int money)
+        public GamePlayer(string name, int money, int id)
         {
             Money = money;
+            Id = id;
             Name = name;
         }
+
+        public int Id { get; set; }
 
         public string Name { get; private set; }
 
         public int Money { get; private set; }
 
+        public void SpendMoney(int amount)
+        {
+            Money -= amount;
+        }
+
+        public void ReceiveMoney(int amount)
+        {
+            Money += amount;
+        }
+
         public override bool Equals(object obj)
         {
             return obj is GamePlayer player &&
+                   Id == player.Id &&
                    Name == player.Name &&
                    Money == player.Money;
         }

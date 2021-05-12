@@ -7,10 +7,10 @@
 
 // NUnit 3 tests
 // See documentation : https://github.com/nunit/docs/wiki/NUnit-Documentation
-using System;
 using System.Linq;
 using NUnit.Framework;
 
+#nullable enable
 namespace Monopoly
 {
     [TestFixture]
@@ -22,9 +22,9 @@ namespace Monopoly
             string[] players = new string[]{ "Peter","Ekaterina","Alexander" };
             GamePlayer[] expectedPlayers = new GamePlayer[]
             {
-                new GamePlayer("Peter",6000),
-                new GamePlayer("Ekaterina",6000),
-                new GamePlayer("Alexander",6000)
+                new GamePlayer("Peter",6000, 1),
+                new GamePlayer("Ekaterina",6000, 2),
+                new GamePlayer("Alexander",6000, 3)
             };
             Monopoly monopoly = new Monopoly(players);
             GamePlayer[] actualPlayers = monopoly.GetPlayersList().ToArray();
@@ -36,14 +36,14 @@ namespace Monopoly
         {
             GameField[] expectedCompanies = 
                 new GameField[]{
-                new GameField("Ford",FieldType.AUTO,0,false),
-                new GameField("MCDonald", FieldType.FOOD, 0, false),
-                new GameField("Lamoda", FieldType.CLOTHER, 0, false),
-                new GameField("Air Baltic",FieldType.TRAVEL,0,false),
-                new GameField("Nordavia",FieldType.TRAVEL,0,false),
-                new GameField("Prison",FieldType.PRISON,0,false),
-                new GameField("MCDonald",FieldType.FOOD,0,false),
-                new GameField("TESLA",FieldType.AUTO,0,false)
+                new GameField("Ford",FieldType.AUTO),
+                new GameField("MCDonald", FieldType.FOOD),
+                new GameField("Lamoda", FieldType.CLOTHER),
+                new GameField("Air Baltic",FieldType.TRAVEL),
+                new GameField("Nordavia",FieldType.TRAVEL),
+                new GameField("Prison",FieldType.PRISON),
+                new GameField("MCDonald",FieldType.FOOD),
+                new GameField("TESLA",FieldType.AUTO)
             };
             string[] players = new string[] { "Peter", "Ekaterina", "Alexander" };
             Monopoly monopoly = new Monopoly(players);
@@ -55,27 +55,30 @@ namespace Monopoly
         {
             string[] players = new string[] { "Peter", "Ekaterina", "Alexander" };
             Monopoly monopoly = new Monopoly(players);
-            GameField x = monopoly.GetFieldByName("Ford");
-            monopoly.Buy(1, x);
-            GamePlayer actualPlayer = monopoly.GetPlayerInfo(1);
-            GamePlayer expectedPlayer = new GamePlayer("Peter", 5500);
+            var x = monopoly.GetFieldByName("Ford");
+            Assert.NotNull(x);
+            monopoly.Buy(1, x!);
+            var actualPlayer = monopoly.GetPlayerInfo(1);
+            var expectedPlayer = new GamePlayer("Peter", 5500, 1);
             Assert.AreEqual(expectedPlayer, actualPlayer);
-            GameField actualField = monopoly.GetFieldByName("Ford");
-            Assert.AreEqual(1, actualField.PlayerIndex);
+            var actualField = monopoly.GetFieldByName("Ford");
+            Assert.AreEqual(1, actualField?.PlayerId);
         }
         [Test]
         public void RentaShouldBeCorrectTransferMoney()
         {
             string[] players = new string[] { "Peter", "Ekaterina", "Alexander" };
-            Monopoly monopoly = new Monopoly(players);
-            GameField  x = monopoly.GetFieldByName("Ford");
-            monopoly.Buy(1, x);
+            var monopoly = new Monopoly(players);
+            var  x = monopoly.GetFieldByName("Ford");
+            Assert.NotNull(x);
+            monopoly.Buy(1, x!);
             x = monopoly.GetFieldByName("Ford");
-            monopoly.Renta(2, x);
-            GamePlayer player1 = monopoly.GetPlayerInfo(1);
-            Assert.AreEqual(5750, player1.Money);
-            GamePlayer player2 = monopoly.GetPlayerInfo(2);
-            Assert.AreEqual(5750, player2.Money);
+            Assert.NotNull(x);
+            monopoly.Renta(2, x!);
+            var player1 = monopoly.GetPlayerInfo(1);
+            Assert.AreEqual(5750, player1?.Money);
+            var player2 = monopoly.GetPlayerInfo(2);
+            Assert.AreEqual(5750, player2?.Money);
         }
     }
 }

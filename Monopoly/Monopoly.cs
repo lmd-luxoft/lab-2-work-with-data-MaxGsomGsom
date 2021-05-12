@@ -8,13 +8,12 @@
 using System.Collections.Generic;
 using System.Linq;
 
+#nullable enable
 namespace Monopoly
 {
-    //TODO Инкапсулировать логику вычитания/прибавления денег в класс игрока, не пересоздавать игрока при каждой операции
-    //TODO Инкапсулировать логику передачи права собственности в класс игрового поля, не пересоздавать поле при каждой операции
-    //TODO Добавить айдишники для игроков, использовать их в игровых полях
     class Monopoly
     {
+        private const int InitMoney = 6000;
         private readonly List<GamePlayer> players = new List<GamePlayer>();
         private readonly List<GameField> fields = new List<GameField>();
 
@@ -22,17 +21,17 @@ namespace Monopoly
         {
             for (int i = 0; i < playersNames.Length; i++)
             {
-                players.Add(new GamePlayer(playersNames[i], 6000));     
+                players.Add(new GamePlayer(playersNames[i], InitMoney, i + 1));     
             }
 
-            fields.Add(new GameField("Ford", FieldType.AUTO, 0, false));
-            fields.Add(new GameField("MCDonald", FieldType.FOOD, 0, false));
-            fields.Add(new GameField("Lamoda", FieldType.CLOTHER, 0, false));
-            fields.Add(new GameField("Air Baltic", FieldType.TRAVEL, 0, false));
-            fields.Add(new GameField("Nordavia", FieldType.TRAVEL, 0, false));
-            fields.Add(new GameField("Prison", FieldType.PRISON, 0, false));
-            fields.Add(new GameField("MCDonald", FieldType.FOOD, 0, false));
-            fields.Add(new GameField("TESLA", FieldType.AUTO, 0, false));
+            fields.Add(new GameField("Ford", FieldType.AUTO));
+            fields.Add(new GameField("MCDonald", FieldType.FOOD));
+            fields.Add(new GameField("Lamoda", FieldType.CLOTHER));
+            fields.Add(new GameField("Air Baltic", FieldType.TRAVEL));
+            fields.Add(new GameField("Nordavia", FieldType.TRAVEL));
+            fields.Add(new GameField("Prison", FieldType.PRISON));
+            fields.Add(new GameField("MCDonald", FieldType.FOOD));
+            fields.Add(new GameField("TESLA", FieldType.AUTO));
         }
 
         internal IReadOnlyList<GamePlayer> GetPlayersList()
@@ -40,109 +39,46 @@ namespace Monopoly
             return players;
         }
 
-        internal List<GameField> GetFieldsList()
+        internal IReadOnlyCollection<GameField> GetFieldsList()
         {
             return fields;
         }
 
-        internal GameField GetFieldByName(string name)
+        internal GameField? GetFieldByName(string name)
         {
             return fields.FirstOrDefault(field => field.Name == name);
         }
 
-        internal bool Buy(int playerIndex, GameField field)
+        internal bool Buy(int playerId, GameField field)
         {
-            var player = GetPlayerInfo(playerIndex);
-            int cash = 0;
-            switch(field.Type)
-            {
-                case FieldType.AUTO:
-                    if (field.PlayerIndex != 0)
-                        return false;
-                    cash = player.Money - 500;
-                    players[playerIndex - 1] = new GamePlayer(player.Name, cash);
-                    break;
-                case FieldType.FOOD:
-                    if (field.PlayerIndex != 0)
-                        return false;
-                    cash = player.Money - 250;
-                    players[playerIndex - 1] = new GamePlayer(player.Name, cash);
-                    break;
-                case FieldType.TRAVEL:
-                    if (field.PlayerIndex != 0)
-                        return false;
-                    cash = player.Money - 700;
-                    players[playerIndex - 1] = new GamePlayer(player.Name, cash);
-                    break;
-                case FieldType.CLOTHER:
-                    if (field.PlayerIndex != 0)
-                        return false;
-                    cash = player.Money - 100;
-                    players[playerIndex - 1] = new GamePlayer(player.Name, cash);
-                    break;
-                default:
-                    return false;
-            }
-            int i = players.Select((item, index) => new { name = item.Name, index = index })
-                .Where(n => n.name == player.Name)
-                .Select(p => p.index).FirstOrDefault();
-            fields[i] = new GameField(field.Name, field.Type, playerIndex, field.Owned);
-             return true;
+            var player = GetPlayerInfo(playerId);
+            var price = field.GetPrice();
+            if (player == null || field.Owned || price == 0)
+                return false;
+
+            player.SpendMoney(price);
+            field.SetOwner(playerId);
+            return true;
         }
 
-        internal GamePlayer GetPlayerInfo(int index)
+        internal GamePlayer? GetPlayerInfo(int id)
         {
-            return players[index - 1];
+            return players.FirstOrDefault(p => p.Id == id);
         }
 
-        internal bool Renta(int playerIndex, GameField field)
+        internal bool Renta(int playerId, GameField field)
         {
-            var player = GetPlayerInfo(playerIndex);
-            GamePlayer oldPlayer = null;
-            switch(field.Type)
-            {
-                case FieldType.AUTO:
-                    if (field.PlayerIndex == 0)
-                        return false;
-                    oldPlayer =  GetPlayerInfo(field.PlayerIndex);
-                    player = new GamePlayer(player.Name, player.Money - 250);
-                    oldPlayer = new GamePlayer(oldPlayer.Name, oldPlayer.Money + 250);
-                    break;
-                case FieldType.FOOD:
-                    if (field.PlayerIndex == 0)
-                        return false;
-                    oldPlayer = GetPlayerInfo(field.PlayerIndex);
-                    player = new GamePlayer(player.Name, player.Money - 250);
-                    oldPlayer = new GamePlayer(oldPlayer.Name, oldPlayer.Money + 250);
+            var player = GetPlayerInfo(playerId);
+            if (player == null || !field.Owned)
+                return false;
 
-                    break;
-                case FieldType.TRAVEL:
-                    if (field.PlayerIndex == 0)
-                        return false;
-                    oldPlayer = GetPlayerInfo(field.PlayerIndex);
-                    player = new GamePlayer(player.Name, player.Money - 300);
-                    oldPlayer = new GamePlayer(oldPlayer.Name, oldPlayer.Money + 300);
-                    break;
-                case FieldType.CLOTHER:
-                    if (field.PlayerIndex == 0)
-                        return false;
-                    oldPlayer = GetPlayerInfo(field.PlayerIndex);
-                    player = new GamePlayer(player.Name, player.Money - 100);
-                    oldPlayer = new GamePlayer(oldPlayer.Name, oldPlayer.Money + 1000);
+            var owner = GetPlayerInfo(field.PlayerId);
+            var rent = field.GetRent();
+            if (owner == null || rent == 0)
+                return false;
 
-                    break;
-                case FieldType.PRISON:
-                    player = new GamePlayer(player.Name, player.Money - 1000);
-                    break;
-                case FieldType.BANK:
-                    player = new GamePlayer(player.Name, player.Money - 700);
-                    break;
-                default:
-                    return false;
-            }
-            players[playerIndex - 1] = player;
-            if(oldPlayer != null)
-                players[field.PlayerIndex - 1] = oldPlayer;
+            player.SpendMoney(rent);
+            owner.ReceiveMoney(rent);
             return true;
         }
     }
